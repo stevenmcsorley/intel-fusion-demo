@@ -1,0 +1,172 @@
+# Analyst Fusion Dashboard (Palantir-lite) — London Crime Demo
+
+## 1. Overview
+The **Analyst Fusion Dashboard** is a demo intelligence-analysis environment designed to mimic capabilities of high-end fusion systems (e.g., Palantir Gotham, Foundry, FBI/NCA fusion centers).
+
+It allows analysts to:
+- Ingest & unify data from disparate feeds (crime reports, transport incidents, news, etc.).
+- Extract and link entities (people, places, organisations, objects).
+- Explore incidents visually via maps, timelines, and graph networks.
+- Search semantically (vector similarity + keyword search).
+- Build “cases” linking multiple events for export and sharing.
+
+**Target demo:** London crime analysis using only public, legal datasets.
+
+---
+
+## 2. Data Sources
+### UK Police API (Street Crime Data)
+- Docs: https://data.police.uk/docs/
+- Endpoints: crimes, categories, outcomes, stop & search.
+- Fields: `id`, `category`, `location (lat,lng)`, `date`, `outcome_status`.
+
+### TfL API (Transport for London)
+- Docs: https://api.tfl.gov.uk/
+- Feeds:  
+  - AccidentStats (road collisions)  
+  - Line Status (delays, disruptions)  
+- Fields: `id`, `datetime`, `location`, `mode`, `severity`.
+
+### GDELT (Global Database of Events, Language & Tone)
+- Docs: https://blog.gdeltproject.org
+- Feeds: worldwide event + news metadata.
+- Useful for news context: e.g., gang activity, protests.
+- Fields: `date`, `location`, `actor1`, `actor2`, `eventCode`, `headline`.
+
+---
+
+## 3. Core User Workflows
+- **Crime Explorer:** Query incidents by area/date, filter by category, view on map.  
+- **Entity Linking:** Select incident → show linked entities (e.g., “Camden Market”, “Met Police”, “Knife Robbery”).  
+- **Timeline Analysis:** Cluster incidents around key dates (e.g., spikes in burglary during holidays).  
+- **Vector Search:** “Find incidents similar to this robbery” → show others with similar MO.  
+- **Case Builder:** Analyst saves a bundle of incidents, entities, and timeline into a case file for sharing/export.  
+
+---
+
+## 4. Backend APIs
+### Key Types
+**Incident**
+```ts
+interface Incident {
+  id: string;
+  type: "crime" | "tfl" | "news";
+  title: string;
+  description?: string;
+  category?: string;
+  source: string;
+  location: { lat: number; lng: number; address?: string };
+  datetime: string;
+  entities: EntityRef[];
+}
+Entity
+
+ts
+Copy code
+interface Entity {
+  id: string;
+  type: "person" | "location" | "organisation" | "object";
+  name: string;
+  linkedIncidents: string[];
+}
+TimelineCluster
+
+ts
+Copy code
+interface TimelineCluster {
+  date: string;
+  incidents: Incident[];
+}
+Example Endpoints
+GET /incidents?lat,lng,radius,dateRange
+
+GET /entities/{id}
+
+GET /timeline?entityId=xyz
+
+POST /cases
+
+Notes
+
+Use REST + GraphQL hybrid for flexibility.
+
+Frontend caching with TanStack Query.
+
+Support ETags to avoid redundant requests.
+
+5. Frontend UX
+Stack: React + TypeScript + Vite + TanStack Query + Cytoscape.js (graphs) + Mapbox (maps)
+
+Views:
+
+Dashboard Home — London heatmap, recent incidents timeline, search bar.
+
+Incident Explorer — filterable list + map; click to see linked entities.
+
+Entity Graph — interactive network (expand neighbourhoods).
+
+Timeline View — clustered events across time.
+
+Case Builder — drag/drop incidents → build a case file; export JSON/CSV/PDF.
+
+6. Data Ingestion & Enrichment
+Ingestion: Redpanda (Kafka-compatible) for streaming ingestion of UK Police, TfL, GDELT feeds.
+
+Processing: Node.js or Python workers consuming streams.
+
+Enrichment:
+
+NLP entity extraction: Hugging Face transformers + spaCy.
+
+Geo-normalisation: PostGIS.
+
+Vector embeddings: SentenceTransformers → stored in pgvector.
+
+7. Advanced Features
+Vector Search: semantic similarity search on incident descriptions.
+
+Graph Queries: “show all robberies within 500m of Camden Market linked to gang-related news”.
+
+Anomaly Detection (stretch): highlight spikes in certain categories/locations.
+
+8. Security & Privacy
+Auth: Keycloak with OIDC.
+
+Roles: Analyst, Admin.
+
+All queries logged for audit.
+
+Use synthetic / public datasets only in demo.
+
+Differential privacy if aggregations are exported.
+
+9. Technical Stack (Dockerised)
+All services containerised; orchestrated with Docker Compose (dev) and Kubernetes (prod-ready).
+
+Core Services
+Frontend: React + Vite (Node.js 20 build → served via Nginx)
+
+API Backend: Node.js 20 + TypeScript (NestJS or Fastify)
+
+Auth: Keycloak 21 (Quarkus distribution)
+
+Streaming: Redpanda (Kafka-compatible)
+
+Database (Relational + Vectors + GIS): PostgreSQL 15 + pgvector + PostGIS
+
+Graph Database: Neo4j 5
+
+Search Engine: OpenSearch 2.x
+
+Object Store: MinIO (S3-compatible)
+
+Embedding / NLP Service: FastAPI + Hugging Face sentence-transformers
+
+Cache: Redis 7
+
+Observability
+Prometheus (metrics)
+
+Grafana (dashboards)
+
+Loki (logs)
