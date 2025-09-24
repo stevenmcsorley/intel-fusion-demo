@@ -2,6 +2,8 @@
 
 A demo intelligence-analysis environment that mimics capabilities of high-end fusion systems like Palantir Gotham. This system ingests multiple public data sources, extracts entities, links them, and visualizes relationships over maps, graphs, and timelines.
 
+![Dashboard](/dash.png "Dashboard")
+
 ## 🚀 Quick Start
 
 ### Prerequisites
